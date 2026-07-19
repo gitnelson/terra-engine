@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TERRA · Teaching Console</title>
+</head>
+<body>
+<div id="bg-glow"></div>
+<canvas id="globe-canvas"></canvas>
+
+<div id="poweroff">
+  <span class="po-brk tl"></span><span class="po-brk tr"></span><span class="po-brk bl"></span><span class="po-brk br"></span>
+  <div class="po-inner">
+    <div class="po-mark disp">TE<b>RR</b>A</div>
+    <div class="po-sub up thin" id="poSub">Physical Systems Console</div>
+    <div class="po-status up"><span class="d"></span>SYSTEM OFFLINE · STANDBY</div>
+    <button id="initBtn" class="po-btn">▶ INITIALIZE TERRA</button>
+    <div class="po-hint">click to power on</div>
+  </div>
+</div>
+<div id="scan"></div>
+<div id="grain"></div>
+<div id="bootflash"></div>
+
+<div id="app">
+  <!-- top bar -->
+  <div id="topbar">
+    <div class="brand">
+      <div class="mark disp">TE<b>RR</b>A</div>
+      <div class="sub up thin" id="brandSub">Physical Systems Console</div>
+    </div>
+    <div class="tb-spacer"></div>
+    <div class="pill"><span class="dot"></span><span id="statusTxt">SYSTEM NOMINAL</span></div>
+    <div class="tb-sep"></div>
+    <div class="tb-item"><span class="k up">BEIJING</span><span class="v mono" id="clkBJ">--:--</span></div>
+    <div class="tb-item"><span class="k up">LOCAL</span><span class="v mono" id="clkLO">--:--</span></div>
+    <div class="tb-sep"></div>
+    <div class="tbtn on" id="audioBtn">◍ AUDIO ON</div>
+  </div>
+
+  <!-- left rail — nav built from config.modules by chrome.ts -->
+  <div id="rail">
+    <div class="rail-nav" id="railNav"></div>
+    <div class="rail-foot">TERRA//v1.0</div>
+  </div>
+
+  <!-- stage -->
+  <div id="stage">
+    <!-- left context -->
+    <div class="panel" id="ctx">
+      <span class="brk tl"></span><span class="brk tr"></span><span class="brk bl"></span><span class="brk br"></span>
+      <div class="p-body">
+        <div class="mod-idx mono" id="mIdx">MODULE 01 / 03</div>
+        <div class="mod-name" id="mName">—</div>
+        <div class="mod-desc" id="mDesc"></div>
+        <div class="leg" id="legend"></div>
+      </div>
+    </div>
+
+    <!-- right assistant -->
+    <div class="panel" id="assist">
+      <span class="brk tl"></span><span class="brk tr"></span><span class="brk bl"></span><span class="brk br"></span>
+      <div class="p-head">
+        <span class="ttl disp">Guiding Question</span>
+        <span class="tri">● LIVE</span>
+      </div>
+      <div class="p-body">
+        <div class="say" id="say"></div>
+        <div class="ins" id="ins"></div>
+        <div class="ctl-row" id="ctl"></div>
+      </div>
+    </div>
+
+    <!-- bottom deck: cross-section / hadley -->
+    <div class="panel" id="deck">
+      <span class="brk bl"></span><span class="brk br"></span>
+      <div class="p-head"><span class="tag mono">SECTION</span><span class="ttl disp" id="deckTtl">Boundary Cross-Section</span><span class="tri" id="deckSub">—</span></div>
+      <canvas id="secCanvas" width="1080" height="230"></canvas>
+    </div>
+
+    <!-- data overlay (scrub-timeline archetype fills this) -->
+    <div id="pop"></div>
+
+    <div class="hint" id="hint"></div>
+  </div>
+</div>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
