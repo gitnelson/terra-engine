@@ -65,11 +65,16 @@ export class TerraEngine {
 
     startClock();
 
-    // Region-anchored lessons (config.home set) suppress ongoing idle auto-spin —
+    // Region-anchored lessons (config.cameraAim set) suppress ongoing idle auto-spin —
     // boot/standby spin rates are untouched (still cinematic), only the drift that
     // would carry the anchored region off-screen is disabled. Lessons without
-    // `home` get today's bootCfg unchanged.
-    const bootCfg = config.home
+    // `cameraAim` get today's bootCfg unchanged.
+    //
+    // faceLon() zeroes autov itself, but boot.phaseB re-arms it ~950ms later from
+    // cfg.autoSpin.idle — so this clone is load-bearing, not redundant with the
+    // re-anchor in activate(). A region lesson should also declare idle: 0 in its own
+    // boot config (this keeps it correct if the author forgets).
+    const bootCfg = config.cameraAim
       ? { ...config.boot, autoSpin: { ...config.boot.autoSpin, idle: 0 } }
       : config.boot;
 
@@ -86,6 +91,12 @@ export class TerraEngine {
   private ctx!: ModuleContext;
 
   activate(i: number, stagger = false): void {
+    // Re-anchor before the already-active guard, so clicking the nav icon you are
+    // already on means "recentre". Without this a teacher who drags the globe away
+    // mid-module has to navigate out and back to recover the view, and the dev-only
+    // __terra.faceLon helper does not exist in the shipped console.
+    const aim = this.config.cameraAim;
+    if (aim) this.cam.faceLon(aim.lon, aim.lat, aim.z);
     if (i === this.curMod) return;
     if (this.curMod >= 0) {
       const prev = this.modules[this.curMod];
@@ -98,10 +109,9 @@ export class TerraEngine {
     arch.buildPanel(this.ctx, m, handle);
     arch.buildControls(this.ctx, m, handle);
     arch.onEnter(this.ctx, handle, m.params);
-    // re-anchor on every module activation (covers boot completion — the first
-    // activate(0) is called from inside the boot sequence — and every later nav
-    // click, so a manual drag or lingering idle spin never strands the region).
-    if (this.config.home) this.cam.faceLon(this.config.home.lon, this.config.home.lat, this.config.home.z);
+    // re-anchor again after onEnter — an archetype's entry animation can move the
+    // camera, and the first activate(0) runs from inside the boot sequence.
+    if (aim) this.cam.faceLon(aim.lon, aim.lat, aim.z);
     this.chrome.setActiveNav(i);
 
     // staggered fade (ported from renderModule 775)

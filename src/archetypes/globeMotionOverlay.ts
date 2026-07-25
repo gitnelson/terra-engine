@@ -26,9 +26,17 @@ export interface GlobeMotionParams {
   circulateFallback?: string;
   // Ordered eras fired by the 'migrate' action — each era pulses its own points in
   // sequence, staggered era-to-era (advanced-03-united-states: the five Moving West
-  // waves). Reuses the same pulse+ping+timer mechanic as 'seismic', just grouped and
-  // slower — no new per-frame system.
-  migrationWaves?: { label: string; pts: LonLat[] }[];
+  // waves). Same pulse+ping+timer mechanic as 'seismic' — no new per-frame system.
+  migrationWaves?: MigrationWave[];
+}
+
+export interface MigrationWave {
+  label: string;
+  pts: LonLat[];
+  // Pulse colour for this era. Without it every wave pulses the engine default, so a
+  // lesson legend that gives each era its own swatch shows students colours that
+  // appear nowhere on the globe.
+  color?: Hex;
 }
 
 interface Handle extends ArchetypeHandle {
@@ -39,9 +47,10 @@ interface Handle extends ArchetypeHandle {
   deck: CrossSectionDeck | null;
   hadleyActive: boolean;
   hadleyPhase: number;
-  active: boolean;        // gates the per-frame loop to the active module only
-  timers: number[];       // seismic setTimeout ids, cleared on exit
-  insolIv: number | null; // runInsolation interval id, cleared on exit
+  active: boolean;         // gates the per-frame loop to the active module only
+  timers: number[];        // seismic setTimeout ids, cleared on exit
+  migrateTimers: number[]; // migrate ids, kept apart so a re-press can cancel its own run
+  insolIv: number | null;  // runInsolation interval id, cleared on exit
   frameUnsub: (() => void) | null;
 }
 
@@ -54,7 +63,7 @@ export const globeMotionOverlay: Archetype<GlobeMotionParams> = {
     const handle: Handle = {
       layerKeys, boundaries: [], markerGroups: {}, hadleyKey: null, hadleyGroup: null,
       deck: null, hadleyActive: false, hadleyPhase: 0,
-      active: false, timers: [], insolIv: null, frameUnsub: null,
+      active: false, timers: [], migrateTimers: [], insolIv: null, frameUnsub: null,
     };
 
     // boundary lines
@@ -190,6 +199,8 @@ export const globeMotionOverlay: Archetype<GlobeMotionParams> = {
     handle.active = false;
     handle.timers.forEach((id) => clearTimeout(id));
     handle.timers = [];
+    handle.migrateTimers.forEach((id) => clearTimeout(id));
+    handle.migrateTimers = [];
     if (handle.insolIv !== null) { clearInterval(handle.insolIv); handle.insolIv = null; ctx.dir.position.set(-3, 1.5, 2.2); }
     if (handle.deck) { handle.deck.stop(); ctx.panels.deck.root.classList.remove('show'); }
     if (handle.hadleyKey) ctx.layers.setVisible(handle.hadleyKey, false);
@@ -212,13 +223,22 @@ export const globeMotionOverlay: Archetype<GlobeMotionParams> = {
     } else if (act === 'insol' && params.insolation) {
       runInsolation(ctx, handle);
     } else if (act === 'migrate' && params.migrationWaves) {
-      params.migrationWaves.forEach((wave, wi) => handle.timers.push(window.setTimeout(() => {
-        wave.pts.forEach((v, i) => handle.timers.push(window.setTimeout(() => {
-          ctx.pulses.spawn(ctx.ll(v[0], v[1], 1));
-          ctx.sfx.ping(320 + i * 15, 'sine', 0.1, 0.15);
-        }, i * 90)));
+      // one era every 1.5s; inside an era, one point every 90ms. The whole run is
+      // ~7s, and the first 1.5s are silent after the whoosh — which reads as "it
+      // didn't work", so a second press is likely. Cancel our own pending timers
+      // first: a re-press restarts cleanly instead of interleaving two runs' era
+      // captions and doubling the pings over Zoom audio. Kept in a separate list
+      // from handle.timers so restarting migrate never cancels a seismic scan.
+      handle.migrateTimers.forEach(clearTimeout);
+      handle.migrateTimers = [];
+      const after = (ms: number, fn: () => void): void => { handle.migrateTimers.push(window.setTimeout(fn, ms)); };
+      params.migrationWaves.forEach((wave, wi) => after(wi * 1500, () => {
         ctx.flashStatus(`◉ ${wave.label}`);
-      }, wi * 1500)));
+        wave.pts.forEach((v, i) => after(i * 90, () => {
+          ctx.pulses.spawn(ctx.ll(v[0], v[1], 1), wave.color);
+          ctx.sfx.ping(320 + i * 15, 'sine', 0.1, 0.15);
+        }));
+      }));
       ctx.sfx.whoosh();
     }
   },

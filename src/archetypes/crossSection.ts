@@ -7,8 +7,14 @@ import type { SfxApi } from '../engine/audio/sfx';
 // a new lesson adds a NEW named renderer here + data, not a new archetype.
 export interface SectionRenderer {
   title: string;
+  // Set when draw() ignores secT and paints an identical image every tick. The deck
+  // then paints such a scene once per setScene instead of 30x/second — the console
+  // shares a machine with Zoom's encoder, so an idle repaint loop is not free.
+  static?: true;
   draw(sx: CanvasRenderingContext2D, w: number, h: number, secT: number, sfx: SfxApi): void;
 }
+
+const LABEL_FONT = '600 13px Rajdhani';
 
 function arrow(sx: CanvasRenderingContext2D, x: number, y: number, dx: number, dy: number, col: string): void {
   sx.strokeStyle = col; sx.fillStyle = col; sx.lineWidth = 2;
@@ -20,7 +26,89 @@ function arrow(sx: CanvasRenderingContext2D, x: number, y: number, dx: number, d
   sx.closePath(); sx.fill();
 }
 function label(sx: CanvasRenderingContext2D, x: number, y: number, t: string, c: string): void {
-  sx.fillStyle = c; sx.font = '600 13px Rajdhani'; sx.fillText(t, x, y);
+  sx.fillStyle = c; sx.font = LABEL_FONT; sx.fillText(t, x, y);
+}
+function fillUnder(sx: CanvasRenderingContext2D, pts: [number, number][], base: number, fill: string | CanvasGradient): void {
+  sx.beginPath(); sx.moveTo(pts[0][0], base);
+  pts.forEach((p) => sx.lineTo(p[0], p[1]));
+  sx.lineTo(pts[pts.length - 1][0], base); sx.closePath();
+  sx.fillStyle = fill; sx.fill();
+}
+
+// ---- advanced-03-united-states elevation profile (drawn by the usa* renderers) ----
+// [label, elevation_m] west->east at ~39N (Whitney 4,421 / Elbert 4,399 — the two
+// "walls" round to the same height; Great Plains slopes 1,500 -> 500 west->east).
+const USA_PROFILE: [string, number][] = [
+  ['PACIFIC OCEAN', 0], ['COAST RANGES', 1000], ['CENTRAL VALLEY', 50],
+  ['SIERRA NEVADA', 4400], ['GREAT BASIN', 1500], ['ROCKY MOUNTAINS', 4400],
+  ['GREAT PLAINS', 1500], ['GREAT PLAINS', 500], ['MISSISSIPPI RIVER', 120],
+  ['INTERIOR LOWLANDS', 200], ['APPALACHIANS', 2037], ['COASTAL PLAIN', 50],
+  ['ATLANTIC OCEAN', 0],
+];
+const USA_MAXELEV = 4400;
+// How far each legend scene reveals (indices into USA_PROFILE, west->east).
+const UPTO_SIERRA = 3, UPTO_ROCKIES = 5, UPTO_LOWLANDS = 9, UPTO_ATLANTIC = USA_PROFILE.length - 1;
+// index range of the "flat middle" (GREAT PLAINS x2, MISSISSIPPI RIVER, INTERIOR
+// LOWLANDS) — the farmland tint applies over exactly this span.
+const USA_PLAINS_START = 6, USA_PLAINS_END = 9;
+
+// Draws USA_PROFILE up through index `uptoIdx` only — the band-by-band reveal. The
+// unrevealed tail is left blank (dashed baseline hint), never labeled or shaped, so
+// nothing downstream of the current band leaks before the teacher advances the legend.
+function drawUsaProfile(sx: CanvasRenderingContext2D, w: number, h: number, uptoIdx: number): void {
+  const base = h * 0.86, top = h * 0.14;
+  const n = USA_PROFILE.length;
+  const revealN = Math.max(0, Math.min(uptoIdx, n - 1));
+  // only the revealed bands are ever turned into geometry
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= revealN; i++) {
+    pts.push([(i / (n - 1)) * w, base - (USA_PROFILE[i][1] / USA_MAXELEV) * (base - top)]);
+  }
+
+  const grd = sx.createLinearGradient(0, top, 0, base);
+  grd.addColorStop(0, 'rgba(255,180,84,.16)'); grd.addColorStop(1, 'rgba(89,197,140,.14)');
+  fillUnder(sx, pts, base, grd);
+
+  // The flat middle gets a distinct cultivated-green tint over the generic terrain
+  // gradient — the visual half of the "farmland, not empty" repair (the verbal half
+  // is the narration). Color only, no label; the slice stops at the revealed band.
+  if (revealN >= USA_PLAINS_START) {
+    fillUnder(sx, pts.slice(USA_PLAINS_START, USA_PLAINS_END + 1), base, 'rgba(96,189,116,.4)');
+  }
+
+  sx.strokeStyle = '#8fefe4'; sx.lineWidth = 2; sx.beginPath();
+  pts.forEach((p, i) => i ? sx.lineTo(p[0], p[1]) : sx.moveTo(p[0], p[1]));
+  sx.stroke();
+
+  sx.strokeStyle = 'rgba(89,169,255,.4)'; sx.lineWidth = 1;
+  sx.beginPath(); sx.moveTo(0, base); sx.lineTo(w, base); sx.stroke();
+
+  // Measure and lay the labels out rather than clamping to a guessed right margin.
+  // At the deck's fixed 1080x230 bitmap a `w - 140` clamp collapsed the last two
+  // names onto the same x (COASTAL PLAIN overprinting ATLANTIC OCEAN, 2px apart, in
+  // the final frame of the module) and ran MISSISSIPPI RIVER through INTERIOR
+  // LOWLANDS. Centre on the point, keep inside the canvas, lift on collision.
+  sx.font = LABEL_FONT;
+  const placed: { x: number; y: number; w: number }[] = [];
+  let lastLabel = '';
+  pts.forEach(([x, y], i) => {
+    const [name, elev] = USA_PROFILE[i];
+    if (name === lastLabel) return;
+    lastLabel = name;
+    const tw = sx.measureText(name).width;
+    const lx = Math.min(Math.max(x - tw / 2, 4), Math.max(w - tw - 4, 4));
+    const hits = (ly: number): boolean =>
+      placed.some((p) => lx < p.x + p.w + 6 && p.x < lx + tw + 6 && Math.abs(p.y - ly) < 14);
+    let ly = Math.max(y - 10, 16);
+    for (let lift = 0; lift < 3 && hits(ly); lift++) ly -= 14;
+    placed.push({ x: lx, y: ly, w: tw });
+    label(sx, lx, Math.max(ly, 12), name, elev >= 3000 ? '#ffb454' : '#8fefe4');
+  });
+
+  if (revealN < n - 1) {
+    sx.strokeStyle = 'rgba(255,255,255,.22)'; sx.lineWidth = 1; sx.setLineDash([4, 4]);
+    sx.beginPath(); sx.moveTo(pts[revealN][0], base); sx.lineTo(w, base); sx.stroke(); sx.setLineDash([]);
+  }
 }
 
 export const SECTION_RENDERERS: Record<string, SectionRenderer> = {
@@ -163,86 +251,25 @@ export const SECTION_RENDERERS: Record<string, SectionRenderer> = {
   // point of the module: it draws as farmland, not the "empty middle" misconception.
   usaWest: {
     title: 'The Shape of America — Pacific to the Sierra',
-    draw(sx, w, h) { drawUsaProfile(sx, w, h, 3); },
+    static: true,
+    draw(sx, w, h) { drawUsaProfile(sx, w, h, UPTO_SIERRA); },
   },
   usaBasin: {
     title: 'The Shape of America — the Great Basin & Rockies',
-    draw(sx, w, h) { drawUsaProfile(sx, w, h, 5); },
+    static: true,
+    draw(sx, w, h) { drawUsaProfile(sx, w, h, UPTO_ROCKIES); },
   },
   usaPlains: {
     title: 'The Shape of America — the Great Plains',
-    draw(sx, w, h) { drawUsaProfile(sx, w, h, 9); },
+    static: true,
+    draw(sx, w, h) { drawUsaProfile(sx, w, h, UPTO_LOWLANDS); },
   },
   usaEast: {
     title: 'The Shape of America — to the Atlantic',
-    draw(sx, w, h) { drawUsaProfile(sx, w, h, USA_PROFILE.length - 1); },
+    static: true,
+    draw(sx, w, h) { drawUsaProfile(sx, w, h, UPTO_ATLANTIC); },
   },
 };
-
-// [label, elevation_m] west->east at ~39N (Whitney 4,421 / Elbert 4,399 — the two
-// "walls" round to the same height; Great Plains slopes 1,500 -> 500 west->east).
-const USA_PROFILE: [string, number][] = [
-  ['PACIFIC OCEAN', 0], ['COAST RANGES', 1000], ['CENTRAL VALLEY', 50],
-  ['SIERRA NEVADA', 4400], ['GREAT BASIN', 1500], ['ROCKY MOUNTAINS', 4400],
-  ['GREAT PLAINS', 1500], ['GREAT PLAINS', 500], ['MISSISSIPPI RIVER', 120],
-  ['INTERIOR LOWLANDS', 200], ['APPALACHIANS', 2037], ['COASTAL PLAIN', 50],
-  ['ATLANTIC OCEAN', 0],
-];
-const USA_MAXELEV = 4400;
-// index range of the "flat middle" (GREAT PLAINS x2, MISSISSIPPI RIVER, INTERIOR
-// LOWLANDS) — the farmland tint applies over exactly this span.
-const USA_PLAINS_START = 6, USA_PLAINS_END = 9;
-
-// Draws USA_PROFILE up through index `uptoIdx` only — the band-by-band reveal. The
-// unrevealed tail is left blank (dashed baseline hint), never labeled or shaped, so
-// nothing downstream of the current band leaks before the teacher advances the legend.
-function drawUsaProfile(sx: CanvasRenderingContext2D, w: number, h: number, uptoIdx: number): void {
-  const base = h * 0.86, top = h * 0.14;
-  const n = USA_PROFILE.length;
-  const revealN = Math.max(0, Math.min(uptoIdx, n - 1));
-  const xAt = (i: number): number => (i / (n - 1)) * w;
-  const yAt = (elev: number): number => base - (elev / USA_MAXELEV) * (base - top);
-
-  const grd = sx.createLinearGradient(0, top, 0, base);
-  grd.addColorStop(0, 'rgba(255,180,84,.16)'); grd.addColorStop(1, 'rgba(89,197,140,.14)');
-  sx.beginPath(); sx.moveTo(xAt(0), base);
-  for (let i = 0; i <= revealN; i++) sx.lineTo(xAt(i), yAt(USA_PROFILE[i][1]));
-  sx.lineTo(xAt(revealN), base); sx.closePath();
-  sx.fillStyle = grd; sx.fill();
-
-  // The flat middle (Great Plains x2, Mississippi River, Interior Lowlands) gets a
-  // distinct cultivated-green tint over the generic terrain gradient — the visual
-  // half of the "farmland, not empty" repair (the verbal half is the narration).
-  // Color only, no label — it only appears once the teacher reveals this band.
-  if (revealN >= USA_PLAINS_START) {
-    const plainsEnd = Math.min(revealN, USA_PLAINS_END);
-    sx.beginPath(); sx.moveTo(xAt(USA_PLAINS_START), base);
-    for (let i = USA_PLAINS_START; i <= plainsEnd; i++) sx.lineTo(xAt(i), yAt(USA_PROFILE[i][1]));
-    sx.lineTo(xAt(plainsEnd), base); sx.closePath();
-    sx.fillStyle = 'rgba(96,189,116,.4)'; sx.fill();
-  }
-
-  sx.strokeStyle = '#8fefe4'; sx.lineWidth = 2; sx.beginPath();
-  for (let i = 0; i <= revealN; i++) { const x = xAt(i), y = yAt(USA_PROFILE[i][1]); i ? sx.lineTo(x, y) : sx.moveTo(x, y); }
-  sx.stroke();
-
-  sx.strokeStyle = 'rgba(89,169,255,.4)'; sx.lineWidth = 1;
-  sx.beginPath(); sx.moveTo(0, base); sx.lineTo(w, base); sx.stroke();
-
-  let lastLabel = '';
-  for (let i = 0; i <= revealN; i++) {
-    const [name, elev] = USA_PROFILE[i];
-    if (name === lastLabel) continue;
-    lastLabel = name;
-    const x = Math.min(Math.max(xAt(i) - 40, 4), w - 140);
-    label(sx, x, Math.max(yAt(elev) - 10, 16), name, elev >= 3000 ? '#ffb454' : '#8fefe4');
-  }
-
-  if (revealN < n - 1) {
-    sx.strokeStyle = 'rgba(255,255,255,.22)'; sx.lineWidth = 1; sx.setLineDash([4, 4]);
-    sx.beginPath(); sx.moveTo(xAt(revealN), base); sx.lineTo(w, base); sx.stroke(); sx.setLineDash([]);
-  }
-}
 
 // A cross-section deck: owns the #deck canvas draw loop, gated on the owning module
 // being active (start/stop from onEnter/onExit). Used by module-0's linked deck and
@@ -250,6 +277,7 @@ function drawUsaProfile(sx: CanvasRenderingContext2D, w: number, h: number, upto
 export class CrossSectionDeck {
   secType: string;
   private secT = 0;
+  private dirty = true;
   private timer: number | undefined;
   private sfx: SfxApi;
   constructor(private ctx: ModuleContext, defaultScene: string) {
@@ -258,11 +286,16 @@ export class CrossSectionDeck {
   }
   setScene(t: string): void {
     this.secType = t;
+    this.dirty = true;
     const r = SECTION_RENDERERS[t];
     this.ctx.panels.deck.ttl.textContent = r ? r.title : t;
     this.ctx.panels.deck.sub.textContent = t.toUpperCase();
   }
   private draw(): void {
+    // A static scene paints identically every tick, so paint it once per scene change
+    // and let the interval idle. Animated scenes are unaffected.
+    if (SECTION_RENDERERS[this.secType]?.static && !this.dirty) return;
+    this.dirty = false;
     const canvas = this.ctx.panels.deck.canvas;
     const sx = canvas.getContext('2d');
     if (!sx) return;
@@ -277,6 +310,7 @@ export class CrossSectionDeck {
   }
   start(): void {
     this.stop();
+    this.dirty = true;
     this.timer = window.setInterval(() => this.draw(), 33);
   }
   stop(): void {

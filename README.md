@@ -21,6 +21,7 @@ npm install
 npm run dev
 #   ?lesson=hs-01-physical-world        (default)
 #   ?lesson=landforms-shaping-the-land
+#   ?lesson=advanced-03-united-states
 
 # BUILD — one self-contained console per lesson, copied next to each lesson folder
 npm run build:all
@@ -47,7 +48,7 @@ terra/
   vite.config.ts           # single-file build (base:'./', assets inlined)
   lessons/
     lessons.json           # build manifest: {id, subject, slug, copyBack}
-    registry.ts            # (dev convenience) id -> config map
+    registry.ts            # declared id -> config index (no importers today — see TD-002)
     <lesson-id>/
       config.ts            # THE lesson: LessonConfig (exports named + default)
       data.ts              # lesson data (marker coords, series, etc.)
@@ -82,6 +83,12 @@ terra/
 - **LessonConfig** (`config/schema.ts`) — the typed contract you author. One config
   → one console. It lists `modules[]`; each module names an **archetype** by key and
   supplies its `params`, `legend`, `question`, `controls`, and `meta`.
+- **`cameraAim`** (optional, on `LessonConfig`) — for a lesson about ONE region rather
+  than a whole-Earth survey. The engine points the globe here on boot and on every nav
+  click (including re-clicking the current module, which is the teacher's recentre
+  gesture), and suppresses idle auto-spin so the region can't drift off-screen. **The
+  values are not real coordinates** — calibrate them empirically in the dev harness and
+  set `boot.autoSpin.idle: 0` in the lesson too. See TD-001.
 - **Archetype** (`archetypes/types.ts`) — a reusable module *kind*. Given a shared
   `ModuleContext` (the globe scene + services), it builds visuals once, renders its
   panels, and handles enter/exit/actions. Three exist today (below).
@@ -108,11 +115,15 @@ data. Steps:
 3. **Create** `terra/lessons/<id>/config.ts` — a `LessonConfig` composing modules
    from the archetypes (copy `landforms-shaping-the-land/config.ts` as a template).
    Export it **named and default**: `export const xConfig … ; export default xConfig;`
-4. **Register it** in two places:
-   - `terra/lessons/registry.ts` — add the import + map entry (dev `?lesson=`).
+4. **Register it** in three places (yes, three — see TD-002):
    - `terra/lessons/lessons.json` — add `{id, subject, slug, copyBack}` (build+copy).
    - `terra/src/main.ts` — add one line to the static ternaries (both the DEV and the
-     build branch) so the lesson is selectable and tree-shakeable.
+     build branch) so the lesson is selectable and tree-shakeable. **This** is what
+     drives dev `?lesson=`, not `registry.ts`.
+   - `terra/lessons/registry.ts` — add the import + map entry. Nothing reads this
+     today; keep it accurate anyway, it is the declared index of buildable lessons.
+
+   The browser-tab title needs no registration — `config.title` drives it at runtime.
 5. **Narration** — either bake mp3s (see below) or ship TTS fallback: give each
    `narration` entry `src: ''` + a `fallbackText`.
 6. **Build + verify**: `npm run build:all -- <id>`, open the built console, walk the
@@ -133,10 +144,14 @@ imperative actions.
   crossSection?: {scenes: string[]; default: string};  // links a deck (SECTION_RENDERERS)
   sectionMarkers?: Record<string,string>;              // section key -> marker layer to show
   insolation?: boolean;                                // enables the 'insol' action
+  migrationWaves?: {label; pts: LonLat[]; color?: Hex}[]; // 'migrate' action: eras pulsed in
+                                                       //   sequence, 1.5s apart, each in its
+                                                       //   own colour (give the legend the
+                                                       //   SAME colours or it lies)
   glow?: Hex; circulateNarration?: string; circulateFallback?: string;
 }
 ```
-Actions (wired via `controls[].act`): `seismic`, `circulate`, `insol`, `speak`.
+Actions (wired via `controls[].act`): `seismic`, `circulate`, `insol`, `migrate`, `speak`.
 
 **`animated-cross-section`** — a standalone 2D cross-section deck; the legend switches
 named scenes.
@@ -256,7 +271,12 @@ Golden reference screenshots from development live in `../screenshots/`.
 
 ## Known gaps / tech debt
 
-See `../docs/tech-debt.md` (Terra section) — deferred P2 cleanups from the review-team
-pass (GPU disposal, dead code/scaffold leftovers, small duplication, the unwritten
-`bake-narration.ts`). Nothing blocks authoring or shipping a lesson.
+See **`docs/tech-debt.md`** in this repo — TD-001 (the `faceLon()` centring bug that makes
+`cameraAim` a hand-calibrated value rather than real coordinates) and everything after it.
+
+Older Terra entries from the 2026-07-18 review-team pass (GPU disposal, dead
+code/scaffold leftovers, small duplication, the unwritten `bake-narration.ts`) still sit
+in the private teaching repo's `docs/tech-debt.md` under a "Terra engine" heading, with
+`terra/`-prefixed paths that no longer resolve from there — they want migrating here.
+Nothing in either list blocks authoring or shipping a lesson.
 ```

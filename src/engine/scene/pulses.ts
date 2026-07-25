@@ -7,17 +7,17 @@ import type { CameraController } from './camera';
 // seismic scan both spawn these. Frame-count driven (matches original), so the
 // transient isn't affected by freezeTime.
 export interface Pulses {
-  spawn(v: THREE.Vector3): void;
+  spawn(v: THREE.Vector3, color?: number): void;
 }
 
 export function createPulses(globeCtx: GlobeContext, cam: CameraController): Pulses {
   const globe = globeCtx.globe;
   const pulses: { ring: THREE.Mesh; t: number; mat: THREE.MeshBasicMaterial }[] = [];
 
-  function spawn(v: THREE.Vector3): void {
+  function spawn(v: THREE.Vector3, color = 0xffb454): void {
     const geo = new THREE.RingGeometry(0.02, 0.03, 32);
     const mat = new THREE.MeshBasicMaterial({
-      color: 0xffb454, transparent: true, opacity: 0.9, side: THREE.DoubleSide,
+      color, transparent: true, opacity: 0.9, side: THREE.DoubleSide,
       blending: THREE.AdditiveBlending, depthWrite: false,
     });
     const ring = new THREE.Mesh(geo, mat);

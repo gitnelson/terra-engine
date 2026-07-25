@@ -30,12 +30,15 @@ const sectionParams: CrossSectionParams = {
 
 const migrationParams: GlobeMotionParams = {
   markerLayers: [{ key: 'cities', pts: CITIES, color: 0x4fe3d0, size: 0.016, pulse: false }],
+  // Five waves, three colour phases — the colours are what the legend below promises,
+  // so every swatch a student sees appears on the globe. The three middle waves share
+  // the westward orange because they are one movement in three pushes.
   migrationWaves: [
-    { label: '1600–1820 · EAST COAST ARRIVAL', pts: WAVE_EAST_ARRIVAL },
-    { label: 'MID-1800s · GOLD & RAIL WEST', pts: WAVE_GOLD_RAIL },
-    { label: 'BY 1870 · INDUSTRY & THE GREAT LAKES', pts: WAVE_INDUSTRY_LAKES },
-    { label: 'BY 1920 · AIRCRAFT & FILM WEST', pts: WAVE_AIRCRAFT_FILM },
-    { label: '1970 → TODAY · THE SUN BELT', pts: WAVE_SUN_BELT },
+    { label: '1600–1820 · EAST COAST ARRIVAL', pts: WAVE_EAST_ARRIVAL, color: 0xffb454 },
+    { label: 'MID-1800s · GOLD & RAIL WEST', pts: WAVE_GOLD_RAIL, color: 0xff9e5b },
+    { label: 'BY 1870 · INDUSTRY & THE GREAT LAKES', pts: WAVE_INDUSTRY_LAKES, color: 0xff9e5b },
+    { label: 'BY 1920 · AIRCRAFT & FILM WEST', pts: WAVE_AIRCRAFT_FILM, color: 0xff9e5b },
+    { label: '1970 → TODAY · THE SUN BELT', pts: WAVE_SUN_BELT, color: 0xff5b6e },
   ],
   glow: 0xffb454,
 };
@@ -80,20 +83,14 @@ export const advanced03UsaConfig: LessonConfig = {
   brandSub: 'United States Console · DK Geo L3',
   poSub: 'United States Console',
   accent: { cy: 0x4fe3d0, am: 0xffb454, red: 0xff5b6e },
-  boot: { landTraceMs: 1700, ignitionPulses: [[-98, 39], [-122, 47], [-77, 39]], autoSpin: { standby: 0.0006, boot: 0.006, idle: 0.0016 } },
-  // Camera aim for the US — anchors the globe here on boot and on every module
-  // switch (see TerraEngine.ts); idle auto-spin is suppressed so the Moving West
-  // module never drifts the US off-screen mid-class.
-  // NOTE: lat is a CALIBRATED AIM VALUE, not the geographic centre's real latitude
-  // (~39N). camera.ts's faceLon() has a pre-existing centering bug — it only maps
-  // its target to true screen-center for points near lon=-90 AND doesn't account
-  // for the camera's fixed y=0.3 offset (no compensating lookAt()), so oblique
-  // targets land well off-center (confirmed empirically: faceLon(-98,39) centers
-  // on Greenland/the Arctic, not the US). lat=-8 was found by bisecting screenshots
-  // in the dev harness (__terra.faceLon) until the CONUS actually centers. Flagging
-  // for an eventual camera.ts fix — out of scope here per the "don't refactor the
-  // camera system" constraint on this build.
-  home: { lon: -98, lat: -8 },
+  // idle is 0 because cameraAim is set: a region lesson must not drift its region
+  // off-screen. Stated here rather than left to the engine's override so the file
+  // says what actually happens.
+  boot: { landTraceMs: 1700, ignitionPulses: [[-98, 39], [-122, 47], [-77, 39]], autoSpin: { standby: 0.0006, boot: 0.006, idle: 0 } },
+  // ⚠️ NOT geographic coordinates. lat is a calibrated aim found by bisecting in the
+  // dev harness until the CONUS actually centred — the real centre is ~39N. Do not
+  // "correct" it to true geography; see TD-001 in docs/tech-debt.md for why.
+  cameraAim: { lon: -98, lat: -8 },
   narration: [
     {
       key: 'mod0', src: '',
@@ -142,8 +139,8 @@ export const advanced03UsaConfig: LessonConfig = {
       legend: [
         { t: 'cities', c: 0x4fe3d0, b: 'Cities', s: 'named urban centers' },
         { t: 'early', c: 0xffb454, b: '1600–1820', s: 'first arrivals' },
-        { t: 'west', c: 0xff9e5b, b: 'Gold & rail', s: 'mid-1800s push west' },
-        { t: 'sunbelt', c: 0xff5b6e, b: 'Sun Belt', s: '1970 → today' },
+        { t: 'west', c: 0xff9e5b, b: '1800s–1920s', s: 'gold, rail, industry, film' },
+        { t: 'sunbelt', c: 0xff5b6e, b: '1970 → today', s: 'the Sun Belt' },
       ],
       question: {
         html: `<span class="q">“The country started on the east coast. Why did people keep moving west and south?”</span>`,

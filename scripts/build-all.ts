@@ -10,8 +10,12 @@ const here = dirname(fileURLToPath(import.meta.url));
 const terraRoot = resolve(here, '..');
 const teachingRoot = resolve(terraRoot, '..');
 
-interface Lesson { id: string; subject: string; slug: string; copyBack: string; title: string }
+interface Lesson { id: string; subject: string; slug: string; copyBack: string }
 const lessons: Lesson[] = JSON.parse(readFileSync(resolve(terraRoot, 'lessons/lessons.json'), 'utf8'));
+
+// vite build skips tsc (unlike `npm run build`), so typecheck once up front rather
+// than letting a type error reach a console a teacher is about to screen-share.
+execFileSync('npx', ['tsc', '--noEmit'], { cwd: terraRoot, stdio: 'inherit' });
 
 const only = process.argv.slice(2);
 const todo = only.length ? lessons.filter((l) => only.includes(l.id)) : lessons;
@@ -22,7 +26,7 @@ for (const lesson of todo) {
   execFileSync('npx', ['vite', 'build', '--outDir', outDir, '--emptyOutDir'], {
     cwd: terraRoot,
     stdio: 'inherit',
-    env: { ...process.env, VITE_TERRA_LESSON: lesson.id, VITE_TERRA_TITLE: lesson.title },
+    env: { ...process.env, VITE_TERRA_LESSON: lesson.id },
   });
 
   const built = resolve(outDir, 'index.html');

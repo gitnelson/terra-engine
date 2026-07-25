@@ -26,3 +26,6 @@ dist-ssr
 # Secrets
 .env
 .env.*
+
+# Review/agent artifacts (this repo is public — don't rely on a machine-local global ignore)
+subagent-work/
