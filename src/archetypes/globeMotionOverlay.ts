@@ -24,6 +24,11 @@ export interface GlobeMotionParams {
   glow?: Hex;
   circulateNarration?: string;                   // narration key for 'circulate'
   circulateFallback?: string;
+  // Ordered eras fired by the 'migrate' action — each era pulses its own points in
+  // sequence, staggered era-to-era (advanced-03-united-states: the five Moving West
+  // waves). Reuses the same pulse+ping+timer mechanic as 'seismic', just grouped and
+  // slower — no new per-frame system.
+  migrationWaves?: { label: string; pts: LonLat[] }[];
 }
 
 interface Handle extends ArchetypeHandle {
@@ -206,6 +211,15 @@ export const globeMotionOverlay: Archetype<GlobeMotionParams> = {
       if (params.circulateNarration) ctx.voice.play(params.circulateNarration, params.circulateFallback);
     } else if (act === 'insol' && params.insolation) {
       runInsolation(ctx, handle);
+    } else if (act === 'migrate' && params.migrationWaves) {
+      params.migrationWaves.forEach((wave, wi) => handle.timers.push(window.setTimeout(() => {
+        wave.pts.forEach((v, i) => handle.timers.push(window.setTimeout(() => {
+          ctx.pulses.spawn(ctx.ll(v[0], v[1], 1));
+          ctx.sfx.ping(320 + i * 15, 'sine', 0.1, 0.15);
+        }, i * 90)));
+        ctx.flashStatus(`◉ ${wave.label}`);
+      }, wi * 1500)));
+      ctx.sfx.whoosh();
     }
   },
 };

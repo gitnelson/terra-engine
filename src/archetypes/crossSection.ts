@@ -156,7 +156,93 @@ export const SECTION_RENDERERS: Record<string, SectionRenderer> = {
       label(sx, b + 6, base - 8, 'fault', '#ffb454');
     },
   },
+
+  // ---- advanced-03-united-states lesson renderers (new named scenes; NO new
+  // archetype) — one west->east elevation profile (~39N, metres) from the teacher-key
+  // Terra spec, revealed band by band via the legend. The Great Plains segment is the
+  // point of the module: it draws as farmland, not the "empty middle" misconception.
+  usaWest: {
+    title: 'The Shape of America — Pacific to the Sierra',
+    draw(sx, w, h) { drawUsaProfile(sx, w, h, 3); },
+  },
+  usaBasin: {
+    title: 'The Shape of America — the Great Basin & Rockies',
+    draw(sx, w, h) { drawUsaProfile(sx, w, h, 5); },
+  },
+  usaPlains: {
+    title: 'The Shape of America — the Great Plains',
+    draw(sx, w, h) { drawUsaProfile(sx, w, h, 9); },
+  },
+  usaEast: {
+    title: 'The Shape of America — to the Atlantic',
+    draw(sx, w, h) { drawUsaProfile(sx, w, h, USA_PROFILE.length - 1); },
+  },
 };
+
+// [label, elevation_m] west->east at ~39N (Whitney 4,421 / Elbert 4,399 — the two
+// "walls" round to the same height; Great Plains slopes 1,500 -> 500 west->east).
+const USA_PROFILE: [string, number][] = [
+  ['PACIFIC OCEAN', 0], ['COAST RANGES', 1000], ['CENTRAL VALLEY', 50],
+  ['SIERRA NEVADA', 4400], ['GREAT BASIN', 1500], ['ROCKY MOUNTAINS', 4400],
+  ['GREAT PLAINS', 1500], ['GREAT PLAINS', 500], ['MISSISSIPPI RIVER', 120],
+  ['INTERIOR LOWLANDS', 200], ['APPALACHIANS', 2037], ['COASTAL PLAIN', 50],
+  ['ATLANTIC OCEAN', 0],
+];
+const USA_MAXELEV = 4400;
+// index range of the "flat middle" (GREAT PLAINS x2, MISSISSIPPI RIVER, INTERIOR
+// LOWLANDS) — the farmland tint applies over exactly this span.
+const USA_PLAINS_START = 6, USA_PLAINS_END = 9;
+
+// Draws USA_PROFILE up through index `uptoIdx` only — the band-by-band reveal. The
+// unrevealed tail is left blank (dashed baseline hint), never labeled or shaped, so
+// nothing downstream of the current band leaks before the teacher advances the legend.
+function drawUsaProfile(sx: CanvasRenderingContext2D, w: number, h: number, uptoIdx: number): void {
+  const base = h * 0.86, top = h * 0.14;
+  const n = USA_PROFILE.length;
+  const revealN = Math.max(0, Math.min(uptoIdx, n - 1));
+  const xAt = (i: number): number => (i / (n - 1)) * w;
+  const yAt = (elev: number): number => base - (elev / USA_MAXELEV) * (base - top);
+
+  const grd = sx.createLinearGradient(0, top, 0, base);
+  grd.addColorStop(0, 'rgba(255,180,84,.16)'); grd.addColorStop(1, 'rgba(89,197,140,.14)');
+  sx.beginPath(); sx.moveTo(xAt(0), base);
+  for (let i = 0; i <= revealN; i++) sx.lineTo(xAt(i), yAt(USA_PROFILE[i][1]));
+  sx.lineTo(xAt(revealN), base); sx.closePath();
+  sx.fillStyle = grd; sx.fill();
+
+  // The flat middle (Great Plains x2, Mississippi River, Interior Lowlands) gets a
+  // distinct cultivated-green tint over the generic terrain gradient — the visual
+  // half of the "farmland, not empty" repair (the verbal half is the narration).
+  // Color only, no label — it only appears once the teacher reveals this band.
+  if (revealN >= USA_PLAINS_START) {
+    const plainsEnd = Math.min(revealN, USA_PLAINS_END);
+    sx.beginPath(); sx.moveTo(xAt(USA_PLAINS_START), base);
+    for (let i = USA_PLAINS_START; i <= plainsEnd; i++) sx.lineTo(xAt(i), yAt(USA_PROFILE[i][1]));
+    sx.lineTo(xAt(plainsEnd), base); sx.closePath();
+    sx.fillStyle = 'rgba(96,189,116,.4)'; sx.fill();
+  }
+
+  sx.strokeStyle = '#8fefe4'; sx.lineWidth = 2; sx.beginPath();
+  for (let i = 0; i <= revealN; i++) { const x = xAt(i), y = yAt(USA_PROFILE[i][1]); i ? sx.lineTo(x, y) : sx.moveTo(x, y); }
+  sx.stroke();
+
+  sx.strokeStyle = 'rgba(89,169,255,.4)'; sx.lineWidth = 1;
+  sx.beginPath(); sx.moveTo(0, base); sx.lineTo(w, base); sx.stroke();
+
+  let lastLabel = '';
+  for (let i = 0; i <= revealN; i++) {
+    const [name, elev] = USA_PROFILE[i];
+    if (name === lastLabel) continue;
+    lastLabel = name;
+    const x = Math.min(Math.max(xAt(i) - 40, 4), w - 140);
+    label(sx, x, Math.max(yAt(elev) - 10, 16), name, elev >= 3000 ? '#ffb454' : '#8fefe4');
+  }
+
+  if (revealN < n - 1) {
+    sx.strokeStyle = 'rgba(255,255,255,.22)'; sx.lineWidth = 1; sx.setLineDash([4, 4]);
+    sx.beginPath(); sx.moveTo(xAt(revealN), base); sx.lineTo(w, base); sx.stroke(); sx.setLineDash([]);
+  }
+}
 
 // A cross-section deck: owns the #deck canvas draw loop, gated on the owning module
 // being active (start/stop from onEnter/onExit). Used by module-0's linked deck and

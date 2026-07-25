@@ -10,7 +10,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const terraRoot = resolve(here, '..');
 const teachingRoot = resolve(terraRoot, '..');
 
-interface Lesson { id: string; subject: string; slug: string; copyBack: string }
+interface Lesson { id: string; subject: string; slug: string; copyBack: string; title: string }
 const lessons: Lesson[] = JSON.parse(readFileSync(resolve(terraRoot, 'lessons/lessons.json'), 'utf8'));
 
 const only = process.argv.slice(2);
@@ -22,7 +22,7 @@ for (const lesson of todo) {
   execFileSync('npx', ['vite', 'build', '--outDir', outDir, '--emptyOutDir'], {
     cwd: terraRoot,
     stdio: 'inherit',
-    env: { ...process.env, VITE_TERRA_LESSON: lesson.id },
+    env: { ...process.env, VITE_TERRA_LESSON: lesson.id, VITE_TERRA_TITLE: lesson.title },
   });
 
   const built = resolve(outDir, 'index.html');

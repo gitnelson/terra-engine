@@ -67,4 +67,11 @@ export interface LessonConfig {
   boot: BootConfig;
   narration: NarrationClip[];
   modules: ModuleInstance[];
+  // Optional camera anchor for lessons about ONE region (vs. a whole-Earth survey,
+  // where any orientation is fine). When set: the engine faces (lon,lat) on boot
+  // completion and re-faces it on every module activation, and idle auto-spin is
+  // suppressed (boot/standby spin rates are untouched — only the ongoing drift that
+  // would carry the region off-screen is disabled). Omitting this field preserves
+  // today's behavior exactly for lessons that don't need it.
+  home?: { lon: number; lat: number; z?: number };
 }

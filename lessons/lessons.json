@@ -1,4 +1,5 @@
 [
-  { "id": "hs-01-physical-world", "subject": "geography", "slug": "hs-01-physical-world", "copyBack": "index.terra.html" },
-  { "id": "landforms-shaping-the-land", "subject": "geography", "slug": "landforms-shaping-the-land", "copyBack": "index.html" }
+  { "id": "hs-01-physical-world", "subject": "geography", "slug": "hs-01-physical-world", "copyBack": "index.terra.html", "title": "TERRA · Physical Systems Console" },
+  { "id": "landforms-shaping-the-land", "subject": "geography", "slug": "landforms-shaping-the-land", "copyBack": "index.html", "title": "TERRA · Shaping the Land" },
+  { "id": "advanced-03-united-states", "subject": "geography", "slug": "advanced-03-united-states", "copyBack": "index.html", "title": "TERRA · United States Console" }
 ]
