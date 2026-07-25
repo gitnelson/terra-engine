@@ -71,14 +71,14 @@ export interface LessonConfig {
   // where any orientation is fine). When set: the engine faces it on boot completion
   // and re-faces it on every module activation, and idle auto-spin is suppressed
   // (boot/standby spin rates are untouched — only the ongoing drift that would carry
-  // the region off-screen is disabled). Omitting it preserves today's behaviour
+  // the region off-screen is disabled). Omitting it preserves today's behavior
   // exactly for lessons that don't need it.
   //
   // ⚠️ These are NOT geographic coordinates, which is why the field is not called
-  // `home`. faceLon() only centres correctly near lon ≈ -90 and never compensates for
+  // `home`. faceLon() only centers correctly near lon ≈ -90 and never compensates for
   // the camera's fixed y offset, so passing a region's true lat/lon aims the globe
   // somewhere else entirely. Calibrate empirically in the dev harness
-  // (__terra.faceLon) until the region actually centres, and expect the value to look
+  // (__terra.faceLon) until the region actually centers, and expect the value to look
   // wrong. TD-001 in docs/tech-debt.md tracks the underlying fix; when it lands,
   // every calibrated value here has to be migrated to real coordinates.
   cameraAim?: { lon: number; lat: number; z?: number };

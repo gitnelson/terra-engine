@@ -1,6 +1,6 @@
 # Terra — Tech Debt
 
-Catalogue of known pre-existing issues. Add findings here rather than fixing them inline when they
+Catalog of known pre-existing issues. Add findings here rather than fixing them inline when they
 fall outside the scope of the change in hand.
 
 ---
@@ -9,7 +9,7 @@ fall outside the scope of the change in hand.
 
 | ID | Severity | Status | What |
 |----|----------|--------|------|
-| TD-001 | medium | OPEN | `faceLon()` can't centre arbitrary longitudes; `cameraAim` values are hand-calibrated |
+| TD-001 | medium | OPEN | `faceLon()` can't center arbitrary longitudes; `cameraAim` values are hand-calibrated |
 | TD-002 | low | OPEN | `lessons/registry.ts` has no importers; registering a lesson is a 3-place operation |
 | TD-003 | low | OPEN | Lesson figures (US elevation profile) live in the public engine, not the lesson's `data.ts` |
 | TD-004 | low | OPEN | Legend highlight desyncs from the drawn scene on module re-entry |
@@ -19,7 +19,7 @@ fall outside the scope of the change in hand.
 
 ---
 
-## TD-001 · `faceLon()` in `camera.ts` does not actually centre arbitrary longitudes
+## TD-001 · `faceLon()` in `camera.ts` does not actually center arbitrary longitudes
 
 **Found:** 2026-07-25, while building the `advanced-03-united-states` console.
 **Severity:** medium — silently produces a wrong camera aim; costs a manual calibration pass per
@@ -27,12 +27,12 @@ country lesson.
 **Status:** OPEN — worked around, not fixed.
 
 ### What's wrong
-`faceLon()` only centres its target near **lon ≈ −90 by coincidence**, not by construction. Two
+`faceLon()` only centers its target near **lon ≈ −90 by coincidence**, not by construction. Two
 compounding causes, both proven algebraically and confirmed empirically via the dev harness:
 1. The longitude→rotation mapping is not correct for arbitrary inputs.
 2. There is an **uncompensated ~17° offset** introduced by the camera's fixed `y = 0.3` position —
    **there is no `lookAt()` call anywhere in the codebase**, so the camera never actually re-aims at
-   the globe centre.
+   the globe center.
 
 ### Why it went unnoticed
 Terra was built for **whole-Earth** lessons (plate tectonics, climate, landforms) where any globe
@@ -41,11 +41,11 @@ reliably pointed at one country**, which is what surfaced it.
 
 ### How it manifested
 The US console's globe never anchored on the United States. It started at a hardcoded generic default
-and auto-spun continuously with no re-centring on module switch. Over ~4 minutes of app time it
-drifted from roughly Atlantic/Western-Europe-centred to squarely over Kazakhstan/China/Mongolia — with
+and auto-spun continuously with no re-centering on module switch. Over ~4 minutes of app time it
+drifted from roughly Atlantic/Western-Europe-centered to squarely over Kazakhstan/China/Mongolia — with
 the (correctly placed) US city markers squashed onto the globe's far edge **during the Module 02
-migration sequence**, the one module that most needs the US front and centre. `faceLon`/`snap` were
-also dev-only (`import.meta.env.DEV`), so a teacher had no way to recentre.
+migration sequence**, the one module that most needs the US front and center. `faceLon`/`snap` were
+also dev-only (`import.meta.env.DEV`), so a teacher had no way to recenter.
 
 ### The workaround now in place
 A new **optional `home: {lon, lat}` field on `LessonConfig`**. `TerraEngine.ts` re-anchors via
@@ -55,9 +55,9 @@ Lessons without a `home` field behave exactly as before — verified live agains
 and `landforms-shaping-the-land`.
 
 ### ⚠️ The cost this leaves behind
-Because the underlying maths is wrong, the `home` value is an **empirically calibrated aim, not a real
+Because the underlying math is wrong, the `cameraAim` value is an **empirically calibrated aim, not a real
 coordinate.** The US lesson uses **`{lon: -98, lat: -8}`** — bisected by hand in the dev harness — and
-that `lat: -8` is *not* the geographic centre of the contiguous US (~39°N). It is a fudge that happens
+that `lat: -8` is *not* the geographic center of the contiguous US (~39°N). It is a fudge that happens
 to aim correctly given the bug.
 
 **Every future single-region lesson will need its own hand-calibrated `home`, and the value will look
@@ -66,14 +66,14 @@ regional spreads)** directly.
 
 ### Recommended fix (when someone has an hour)
 Correct the longitude→rotation mapping in `camera.ts` and add a proper `lookAt()` so the camera aims at
-the globe centre, compensating for the fixed `y` offset. Then `home` can take **true geographic
+the globe center, compensating for the fixed `y` offset. Then `home` can take **true geographic
 coordinates**, existing calibrated values can be replaced with real ones, and future country lessons
 need no calibration step. Regression-check the two whole-Earth lessons afterwards — they currently rely
-on the existing (wrong-but-consistent) behaviour.
+on the existing (wrong-but-consistent) behavior.
 
 > **Note (2026-07-25):** the field is now called **`cameraAim`**, not `home`, precisely so it doesn't
 > read as geography, and `src/config/schema.ts` carries the warning at the declaration site. The
-> underlying maths is still wrong.
+> underlying math is still wrong.
 
 ---
 
@@ -110,7 +110,7 @@ repo**, sitting in the public engine, outside the lesson folder — so the teach
 traces to bedrock" rule is no longer checkable from the teaching side. It matches the existing
 `us`/`glacial`/`rift` precedent, which is why it shipped.
 
-**Fix:** generalise to one `elevationProfile` renderer taking `[label, elev][]` + reveal indices from
+**Fix:** generalize to one `elevationProfile` renderer taking `[label, elev][]` + reveal indices from
 `CrossSectionParams`, so the numbers live in `lessons/<id>/data.ts` beside their citation. Retires four
 near-identical renderer entries and makes the layout function unit-testable.
 
@@ -154,7 +154,7 @@ a rendering glitch on a screen-share. One line in `onEnter`, or an optional `glo
 `#secCanvas` has a fixed 1080×230 backing store while CSS-scaled to width, so on a HiDPI teacher machine
 every deck label is upscaled and soft — including the 13px elevation-profile labels, the smallest text on
 the shared screen. Fix by multiplying the backing store by `devicePixelRatio` and `sx.scale(dpr, dpr)`
-once at deck construction; renderer maths stays in CSS pixels.
+once at deck construction; renderer math stays in CSS pixels.
 
 ---
 

@@ -92,7 +92,7 @@ export class TerraEngine {
 
   activate(i: number, stagger = false): void {
     // Re-anchor before the already-active guard, so clicking the nav icon you are
-    // already on means "recentre". Without this a teacher who drags the globe away
+    // already on means "recenter". Without this a teacher who drags the globe away
     // mid-module has to navigate out and back to recover the view, and the dev-only
     // __terra.faceLon helper does not exist in the shipped console.
     const aim = this.config.cameraAim;

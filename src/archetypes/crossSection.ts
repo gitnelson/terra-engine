@@ -87,7 +87,7 @@ function drawUsaProfile(sx: CanvasRenderingContext2D, w: number, h: number, upto
   // At the deck's fixed 1080x230 bitmap a `w - 140` clamp collapsed the last two
   // names onto the same x (COASTAL PLAIN overprinting ATLANTIC OCEAN, 2px apart, in
   // the final frame of the module) and ran MISSISSIPPI RIVER through INTERIOR
-  // LOWLANDS. Centre on the point, keep inside the canvas, lift on collision.
+  // LOWLANDS. Center on the point, keep inside the canvas, lift on collision.
   sx.font = LABEL_FONT;
   const placed: { x: number; y: number; w: number }[] = [];
   let lastLabel = '';

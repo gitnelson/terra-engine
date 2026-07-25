@@ -33,8 +33,8 @@ export interface GlobeMotionParams {
 export interface MigrationWave {
   label: string;
   pts: LonLat[];
-  // Pulse colour for this era. Without it every wave pulses the engine default, so a
-  // lesson legend that gives each era its own swatch shows students colours that
+  // Pulse color for this era. Without it every wave pulses the engine default, so a
+  // lesson legend that gives each era its own swatch shows students colors that
   // appear nowhere on the globe.
   color?: Hex;
 }

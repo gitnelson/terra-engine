@@ -30,7 +30,7 @@ const sectionParams: CrossSectionParams = {
 
 const migrationParams: GlobeMotionParams = {
   markerLayers: [{ key: 'cities', pts: CITIES, color: 0x4fe3d0, size: 0.016, pulse: false }],
-  // Five waves, three colour phases — the colours are what the legend below promises,
+  // Five waves, three color phases — the colors are what the legend below promises,
   // so every swatch a student sees appears on the globe. The three middle waves share
   // the westward orange because they are one movement in three pushes.
   migrationWaves: [
@@ -88,7 +88,7 @@ export const advanced03UsaConfig: LessonConfig = {
   // says what actually happens.
   boot: { landTraceMs: 1700, ignitionPulses: [[-98, 39], [-122, 47], [-77, 39]], autoSpin: { standby: 0.0006, boot: 0.006, idle: 0 } },
   // ⚠️ NOT geographic coordinates. lat is a calibrated aim found by bisecting in the
-  // dev harness until the CONUS actually centred — the real centre is ~39N. Do not
+  // dev harness until the CONUS actually centered — the real center is ~39N. Do not
   // "correct" it to true geography; see TD-001 in docs/tech-debt.md for why.
   cameraAim: { lon: -98, lat: -8 },
   narration: [

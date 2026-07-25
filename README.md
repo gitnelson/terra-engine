@@ -85,7 +85,7 @@ terra/
   supplies its `params`, `legend`, `question`, `controls`, and `meta`.
 - **`cameraAim`** (optional, on `LessonConfig`) — for a lesson about ONE region rather
   than a whole-Earth survey. The engine points the globe here on boot and on every nav
-  click (including re-clicking the current module, which is the teacher's recentre
+  click (including re-clicking the current module, which is the teacher's recenter
   gesture), and suppresses idle auto-spin so the region can't drift off-screen. **The
   values are not real coordinates** — calibrate them empirically in the dev harness and
   set `boot.autoSpin.idle: 0` in the lesson too. See TD-001.
@@ -146,8 +146,8 @@ imperative actions.
   insolation?: boolean;                                // enables the 'insol' action
   migrationWaves?: {label; pts: LonLat[]; color?: Hex}[]; // 'migrate' action: eras pulsed in
                                                        //   sequence, 1.5s apart, each in its
-                                                       //   own colour (give the legend the
-                                                       //   SAME colours or it lies)
+                                                       //   own color (give the legend the
+                                                       //   SAME colors or it lies)
   glow?: Hex; circulateNarration?: string; circulateFallback?: string;
 }
 ```
@@ -271,7 +271,7 @@ Golden reference screenshots from development live in `../screenshots/`.
 
 ## Known gaps / tech debt
 
-See **`docs/tech-debt.md`** in this repo — TD-001 (the `faceLon()` centring bug that makes
+See **`docs/tech-debt.md`** in this repo — TD-001 (the `faceLon()` centering bug that makes
 `cameraAim` a hand-calibrated value rather than real coordinates) and everything after it.
 
 Older Terra entries from the 2026-07-18 review-team pass (GPU disposal, dead
