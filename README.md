@@ -1,9 +1,9 @@
-# Terra — Modular Teaching-Console Engine
+# Terra - Modular Teaching-Console Engine
 
 Terra turns interactive, screen-shared teaching consoles (a Three.js globe + glass
 HUD panels + audio + narration) into **config-driven lessons**. You author a new
 console by writing a typed config + supplying data and reusing a small library of
-**archetypes** — not by hand-coding a new app each time.
+**archetypes** - not by hand-coding a new app each time.
 
 Each lesson builds to **one self-contained `index.html`** (Three.js, fonts, world
 data, and any audio all inlined) that the teacher opens locally and screen-shares
